@@ -127,7 +127,8 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 			sqlStatement.append("|[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']|(?i)<script.*?>.*?<script.*?>|(?i)<.*?javascript:.*?>.*?</.*?>|(?i)<.*?\\s+on.*?>.*?</.*?>");
 			sqlStatement.append("|;vol|&&ls *");
 			sqlStatement.append("|\\$query*");
-			sqlStatement.append("|sleep\\(.*\\)|sleep\\s?[0-9A-Za-z]");
+			sqlStatement.append("|sleep\\(.*\\)|sleep\\s?[0-9A-Za-z]|(<input(.*?)></input>|<input(.*)/>)");
+			sqlStatement.append("|%3C%00script.*|%3cscript.*");
 			sqlStatement.append("|ltrim");
 			Pattern p = Pattern.compile(sqlStatement.toString(),Pattern.CASE_INSENSITIVE);
 	        Matcher m = p.matcher(requestData);
