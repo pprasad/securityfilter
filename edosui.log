@@ -1,0 +1,4 @@
+2020-05-09 04:19:51.856 [INFO] (com.cisco.security.util.SecurityContants) [uuid=] **********Started VulnerabilityCheckPoint********************
+ 2020-05-09 04:19:51.891 [INFO] (com.cisco.security.util.SecurityContants) [uuid=] **********End VulnerabilityCheckPoint********************
+ 2020-05-09 04:19:51.899 [INFO] (com.cisco.security.test.SecurityTest) [uuid=] After scan flag:{}true
+ 

@@ -18,6 +18,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
+import org.json.XML;
+
+import com.cisco.security.util.SecurityContants;
 /*
  * @Auth : umprasad
  * @Desc : Vulnerability filter it will does't allowed SQL,CSS & javascript injections
@@ -30,15 +34,13 @@ public class SecurityFilter implements Filter {
 	
 	private final String SESSION_ID="JSESSIONID";
 	
-	private final String HTTP_ONLY="; HttpOnly;";
-	
 	private final String OBSSO_COOKIE="ObSSOCookie";
 	
     private final String GEAR_COOKIE="GEAR";
     
     private final String SERVERID_COOKIE="SERVERID";
     
-    private final String CISCO_DOMAIN="cisco.com";
+    private final String CISCO_DOMAIN="http://localhost";
 	
 	private final String WEBEX_DOMAIN="webex.com";
 	
@@ -56,14 +58,20 @@ public class SecurityFilter implements Filter {
 	
 	protected final String EDOS_LOGIN_COOKIE="edosLogin";
 	
-    protected final String ACCESS_DENIDED= "Access to this feature is restricted outside of the Cisco Commerce Subscription Workbench and SSW applications";
+    protected final String ACCESS_DENIDED= "Access to this feature is restricted outside of the Cisco";
     
     private final String APP_COOKIES="APP_COOKIES";
     
     private final String EDOS_AMCV_COOKIE="AMCV_B8D07FF4520E94C10A490D4C%40AdobeOrg";
     
     private final String METHOD_ALLOWED="METHOD_ALLOWED";
-	
+    
+    private static final String EXECULDE_PATHS="EXECLUDE_PATHS";
+    
+    private static final String ALLOWED_REFERER="ALLOW_REFERER_HEADERS";
+    
+    private String allowedReferers=null;
+    
 	private String emanURL=null;
 	
 	private List<String> allowHosts;
@@ -74,18 +82,21 @@ public class SecurityFilter implements Filter {
 	
 	private List<String> ALLOW_METHODS;
 	
-    public void init(FilterConfig config) throws ServletException {
-		emanURL=config.getInitParameter(EMAN_URL);
-		if(emanURL==null){emanURL=getEnvironments(EMAN_URL);}
-		String allowHost=getEnvironments(ALLOW_HOSTS);
-		String methodAllows=config.getInitParameter("METHOD_ALLOWED");
-		if(methodAllows==null){methodAllows=getEnvironments(METHOD_ALLOWED);}
+	private List<String> execludePaths;
+	
+
+	public void init(FilterConfig config) throws ServletException {
+		emanURL=SecurityContants.getSystemValues(config,EMAN_URL);
+		String allowHost=SecurityContants.getSystemValues(config,ALLOW_HOSTS);
+		String methodAllows=SecurityContants.getSystemValues(config,"METHOD_ALLOWED");
+		execludePaths=new ArrayList<String>();
+		if(methodAllows==null){methodAllows=SecurityContants.getSystemValues(config,METHOD_ALLOWED);}
 		/*Allowed HostURL*/
 		if(allowHost!=null) {
 			allowHosts=new ArrayList<String>();
 			allowHosts.addAll(Arrays.asList(allowHost.split(",")));
 		}
-		String appCookie=getEnvironments(APP_COOKIES);
+		String appCookie=SecurityContants.getSystemValues(config,APP_COOKIES);
 		if(appCookie!=null) {
 			appCookies=new ArrayList<String>();
 			for(String s:appCookie.split(",")){
@@ -100,10 +111,15 @@ public class SecurityFilter implements Filter {
 	    		ALLOW_METHODS.add(s);
 	    	}
 	    }
-		allowContextPath=config.getInitParameter(ALLOW_CONTEXT_PATH);
-		if(allowContextPath==null || (allowContextPath!=null && allowContextPath.length()==0)){
-		    allowContextPath=getEnvironments(ALLOW_CONTEXT_PATH);
+		String execludePath=SecurityContants.getSystemValues(config,EXECULDE_PATHS);
+		if(execludePath!=null) {
+			for(String s:execludePath.split(",")) {
+				execludePaths.add(s);
+			}
 		}
+		allowContextPath=SecurityContants.getSystemValues(config,ALLOW_CONTEXT_PATH);
+		//Allowed Refereres
+		allowedReferers=SecurityContants.getSystemValues(config,ALLOWED_REFERER);
 	}
 	
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,FilterChain filterChain)
@@ -111,21 +127,27 @@ public class SecurityFilter implements Filter {
 		 String errorMsg=null;
 		 HttpServletRequest request=(HttpServletRequest)servletRequest;
 		 HttpServletResponse response=(HttpServletResponse)servletResponse;
+		 addCustomerHeaders(response);
 	     XSSRequestWrapper requestWrapper=new XSSRequestWrapper(request);
 	     String requestBody=requestWrapper.getBody();
+	     if(requestBody!=null && requestWrapper.isXmlRequest()) {
+	    	 JSONObject xmlToJson=XML.toJSONObject(requestBody);
+			 requestBody=xmlToJson.toString();
+	     }
 	     String queryString=requestWrapper.getQueryString();
+	     String url=request.getRequestURI();
 	     boolean isHeaderAllow=requestWrapper.isHeaderAllowed();
-	     LOGGER.info("Request Data::{}"+requestBody);
-	     LOGGER.info("Query String::{}"+queryString);
-	     LOGGER.info("Header Data::{}"+isHeaderAllow);
 	     setSSLCookies(requestWrapper,response);
 	     String method=requestWrapper.getMethod();
 	     boolean isMethodAllow=hasMethodAllowed(method);
+	     LOGGER.info("isMethodAllow::{}"+isMethodAllow);
+	     boolean isValidRequestBody=isVulnerability(requestBody,url);
+	     boolean isValidQueryString=isVulnerability(queryString,url);
 	     if(isCrossSiteRequest(requestWrapper) && isMethodAllow){
-	    	 if((requestBody!=null && isVulnerability(requestBody) && queryString!=null && isVulnerability(queryString) && isHeaderAllow)|| 
-	    			 (requestBody==null && queryString!=null && isVulnerability(queryString) && isHeaderAllow)||
-	    			 (requestBody!=null && isVulnerability(requestBody) && queryString==null && isHeaderAllow)||
-	    			 (requestBody==null && queryString==null && isHeaderAllow)) {
+	    	 LOGGER.info("isHeaderAllow::{}"+isHeaderAllow);
+	 	     LOGGER.info("isValidRequestBody::{}"+isValidRequestBody);
+	 	     LOGGER.info("isValidQueryString::{}"+isValidQueryString);
+	    	 if(isHeaderAllow && isValidQueryString && isValidRequestBody){
 	    		 filterChain.doFilter(requestWrapper,response);
 	    	 }else{
 	    		 errorMsg=INVALID_REQUEST;
@@ -155,109 +177,60 @@ public class SecurityFilter implements Filter {
 		  LOGGER.info("After method checking flag{}"+flag); 
 		  return flag; 
 	}
-	public void setSSLCookies(HttpServletRequest request,HttpServletResponse response){
+	private void setSSLCookies(HttpServletRequest request,HttpServletResponse response){
 		LOGGER.info("<<<<<<<<<<<Enter into setSSLCookies>>>>>>>>>>>>>>>");
+		LOGGER.info("Application Related Cookies:{}"+appCookies.toArray());
 		Cookie []cookies=request.getCookies();
     	if(cookies!=null){
-			  for(Cookie cookie:cookies){  
+			  for(Cookie cookie:cookies){ 
+				  LOGGER.info("cookie.getName:{}"+cookie.getName()+"-->comments:{}"+cookie.getComment()+"--->Secure:{}"+cookie.getSecure());
 				  if(cookie.getName().equalsIgnoreCase(OBSSO_COOKIE)||cookie.getName().equalsIgnoreCase(SESSION_ID)){                    
-					  if(!cookie.getSecure()){
-						  cookie.setSecure(true);
-						  cookie.setComment(HTTP_ONLY);
-						  response.addCookie(cookie);
-					  }else if(cookie.getComment()==null || !HTTP_ONLY.equals(cookie.getComment())){
-						  cookie.setComment(HTTP_ONLY);
-						  response.addCookie(cookie);
-					  }
+					  SecurityContants.setSecureCookie(response,cookie);
 				  }else if(cookie.getName().equalsIgnoreCase(GEAR_COOKIE)||cookie.getName().equalsIgnoreCase(SERVERID_COOKIE)){
-					  if(!cookie.getSecure()){
-						  cookie.setSecure(true);
-						  cookie.setComment(HTTP_ONLY);
-						  response.addCookie(cookie);
-					   }else if(cookie.getComment()==null || !HTTP_ONLY.equals(cookie.getComment())){
-							  cookie.setComment(HTTP_ONLY);
-							  response.addCookie(cookie);
-					   }
+					  SecurityContants.setSecureCookie(response,cookie);
 				  }else if(cookie.getName().equalsIgnoreCase(EDOS_LOGIN_COOKIE) || cookie.getName().equalsIgnoreCase(EDOS_AMCV_COOKIE)) {
-					  if(!cookie.getSecure()) {
-						  cookie.setSecure(true);
-						  cookie.setComment(HTTP_ONLY);
-						  response.addCookie(cookie); 
-					  }else if(cookie.getComment()==null || !HTTP_ONLY.equals(cookie.getComment())){
-						  cookie.setComment(HTTP_ONLY);
-						  response.addCookie(cookie);
-					  }
-				  }else if(appCookies!=null && !appCookies.isEmpty()){
-					  if(appCookies.contains(cookie.getName()) && !cookie.getSecure()){
-						  cookie.setSecure(true);
-						  cookie.setComment(HTTP_ONLY);
-						  response.addCookie(cookie); 
-					  }else if(cookie.getComment()==null || !HTTP_ONLY.equals(cookie.getComment())){
-						  cookie.setComment(HTTP_ONLY);
-						  response.addCookie(cookie);
-					  }
+					  SecurityContants.setSecureCookie(response,cookie);
+				  }else if(appCookies!=null && appCookies.contains(cookie.getName()) && (!cookie.getSecure()||cookie.getComment()==null)){
+					  LOGGER.info("<<<<<Application related cookies>>>>>>");
+					  SecurityContants.setSecureCookie(response,cookie);
 				  }
 			  }
 		}
     	LOGGER.info("<<<<<<<<<<<End setSSLCookies>>>>>>>>>>>>>>>");	
 	}
 	
-	public boolean isCrossSiteRequest(HttpServletRequest request) {
+	private boolean isCrossSiteRequest(HttpServletRequest request) {
 		LOGGER.info("<<<<<<<<<<<Enter isCrossSiteRequest>>>>>>>>>>>>>>>");
 		boolean flag=false;
-		String envType=System.getProperty("cisco.life");
+		String envType=SecurityContants.getEnvType();
     	String referer=request.getHeader("Referer");
-    	String host=request.getRemoteHost();
-    	String url=request.getRequestURI();
+    	String remoteHost=request.getRemoteHost();
+    	String requestURL=request.getRequestURI();
     	String hostUrl=request.getRequestURL().toString();
-    	LOGGER.info("Before Referer::{}"+referer+" Request URL::{}"+url+" Host With Request URL::{}"+hostUrl);
+    	LOGGER.info("Before Referer::{}"+referer+"--->Request URL::{}"+requestURL+"-->Host With Request URL::{}"+hostUrl);
     	LOGGER.info("Allowed ContextPath{}"+allowContextPath);
     	if(referer==null){
     	    referer=CISCO_DOMAIN;
     	}
     	LOGGER.info("After Referer::{}"+referer);
-        if((referer==null || referer!=null) && envType.equals("local")){
-    		referer=CISCO_DOMAIN;
-    		hostUrl=CISCO_DOMAIN;
-    	}
-        if((referer!=null && (referer.contains(CISCO_DOMAIN)||referer.contains(WEBEX_DOMAIN))) 
-    			&& (hostUrl!=null && (hostUrl.contains(CISCO_DOMAIN)||hostUrl.contains(WEBEX_DOMAIN)))){
+    	if(SecurityContants.isValidRefererHeader(referer,allowedReferers) && (SecurityContants.isValidURL(hostUrl)||(allowContextPath!=null &&
+    			hostUrl.contains(allowContextPath)))) {
     		flag=true;
-    	}if((referer!=null && (referer.contains(CISCO_DOMAIN)||referer.contains(allowContextPath))) &&
-    			(allowContextPath!=null && hostUrl!=null && hostUrl.contains(allowContextPath))){
-    		LOGGER.info("********Validating Context Path*************");
-    		flag=true;
-    	}else if(url!=null && url.equals(emanURL)){
+    	}else if(requestURL!=null && requestURL.equals(emanURL)){
     		flag=true;
     	}
         LOGGER.info("<<<<<<<<<<<End isCrossSiteRequest>>>>>>>>>>>>>>>");
         return flag;
 	}
-	private boolean isVulnerability(String requestData) {
+	private boolean isVulnerability(String requestData,String url) {
 		LOGGER.info("<<<<<<<<<<<Start isVulnerability>>>>>>>>>>>>>>>");
 		boolean flag=true;
 		LOGGER.info("Request Data{}::"+requestData);
-		if(requestData!=null && isSecurityFilter()){
+		url=SecurityContants.getPath(url);
+		LOGGER.info("Execlude Paths:{}"+execludePaths.toString());
+		if(requestData!=null && isSecurityFilter() && !execludePaths.contains(url)){
 			LOGGER.info("****Started Validate on Body (Or) Query Parameters*****");
-	    	StringBuilder sqlStatement=new StringBuilder();
-	    	sqlStatement.append("\\bselect\\b|\\binsert\\b|having\\s?[count]|drop|union[\\s]?\\b(select|delete|insert|delete)\\b|(\'|%27).(and|or|AND|OR).(\'|%27)|(\'|%27).%7C{0,2}|%7C{2}");
-			sqlStatement.append("|\\bmerge\\b|\\border by\\b|INSERT( +INTO){0,1}|EXEC(UTE){0,1}");
-			sqlStatement.append("|<script>(.*?)</script>|src[\r\n]*=[\r\n]*\\'(.*?)\\'");
-			sqlStatement.append("|</script>|<script(.*?)>|eval\\((.*?)\\)|expression\\((.*?)\\)|javascript:|alert\\((.*?)\\)");
-			sqlStatement.append("|<!--|\\b#include\\b|\\bfile\\b|\\b/etc/passwd\\b|-->|\\bjsessionid:\\b|\\bJSESSIONID:\\b|\\bvbscript:\\b|onload(.*?)=|/\\*([^*]|[\r\n]|(\\*+([^*/]|[\r\n])))*\\*+/");
-			sqlStatement.append("|/\\*(?:.|[\\n\\r])*?\\*/|--[^\r\n]*|((\\%3C)|<)((\\%69)|i|(\\%49))((\\%6D)|m|(\\%4D))((\\%67)|g|(\\%47))[^\n]+((\\%3E)|>)");
-			sqlStatement.append("|\\(function\\(\\)\\{.*\\}\\)\\(\\)|\\(function\\(\\)\\)\\(\\)");
-			sqlStatement.append("|[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']|(?i)<script.*?>.*?<script.*?>|(?i)<.*?javascript:.*?>.*?</.*?>|(?i)<.*?\\s+on.*?>.*?</.*?>");
-			sqlStatement.append("|;vol|&&ls *");
-			sqlStatement.append("|\\$query*");
-			sqlStatement.append("|sleep\\(.*\\)|sleep\\s?[0-9A-Za-z]|(<input(.*?)></input>|<input(.*)/>)");
-			sqlStatement.append("|%3C%00script.*|%3cscript.*");
-			sqlStatement.append("|ltrim");
-			Pattern p = Pattern.compile(sqlStatement.toString(),Pattern.CASE_INSENSITIVE);
-	        Matcher m = p.matcher(requestData);
-			if(m.find()){
-				flag=false;
-			}
+	    	flag=SecurityContants.isVulnerabilityCheckPoint(requestData);
     	}else{
     		flag=true;
     	}
@@ -268,19 +241,19 @@ public class SecurityFilter implements Filter {
 	private boolean isSecurityFilter() {
 		LOGGER.info("<<<<<<<<<<<Start isSecurityFilter>>>>>>>>>>>>>>>");
 		String isRun=System.getProperty(IS_SECURITY_RUN);
-		LOGGER.info("IS_SECURITY_RUN::{}"+isRun);
+		LOGGER.info("Before IS_SECURITY_RUN::{}"+isRun);
 		if(isRun==null) {
 			isRun=System.getenv(IS_SECURITY_RUN);
 		}
+		LOGGER.info("After IS_SECURITY_RUN::{}"+isRun);
 		LOGGER.info("<<<<<<<<<<<End isSecurityFilter>>>>>>>>>>>>>>>");
 		return (isRun!=null && IS_SECURITY_RUN_NO.equals(isRun))?false:true;
 	}
-	private String getEnvironments(String key){
-		String value=System.getProperty(key);
-		if(value==null) {
-			value=System.getenv(key);
-		}
-		return value;
+	private void addCustomerHeaders(HttpServletResponse response){
+		response.addHeader("Cache-Control","no-store");
+		response.addHeader("Pragma","no-cache");
+		response.addHeader("X-Content-Type-Options","nosniff");
+		response.addHeader("X-XSS-Protection","1; mode=block");
 	}
 	public void destroy() {
 		

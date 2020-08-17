@@ -16,6 +16,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
+import org.json.XML;
+
+import com.cisco.security.util.SecurityContants;
 
 
 public class XSSRequestWrapper extends HttpServletRequestWrapper {
@@ -26,6 +30,8 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	public final String body;
 	public final String queryString;
 	public final boolean isHeaderAllowed;
+	public final boolean isXmlRequest;
+	private final String IS_SQL_QUERY="isSqlQuery";
 	
 	public XSSRequestWrapper(HttpServletRequest request){
 		 super(request);
@@ -50,6 +56,12 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 					 LOGGER.error("Exception",ex);
 				 }
 			 }
+		 }
+		 if((bodyData!=null && bodyData.length()!=0) &&
+				 (request!=null && request.getContentType()!=null && request.getContentType().contains("application/soap+xml"))){
+			  this.isXmlRequest=true;
+		 }else{
+			 this.isXmlRequest=false;
 		 }
 	     this.body=bodyData.length()==0?null:bodyData.toString();
 	     this.queryString=this.getQueryParameters();
@@ -77,10 +89,15 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 		int i=0;
 		for(Map.Entry<String,Object> param:entrySet) {
 			if(query==null) {query="";}
-		    query+=param.getKey()+"="+this.getParameter(param.getKey());
-			i+=1;
-			if(i<entrySet.size()) {
-				query+="&";
+			if(!param.getKey().equals(IS_SQL_QUERY)){
+				query+=param.getKey()+"="+this.getParameter(param.getKey());
+				i+=1;
+				if(i<entrySet.size()) {
+					query+="&";
+				}
+			}else{
+				query=null;
+				break;
 			}
 		}
 		LOGGER.info("****************END getQueryParameters****************");
@@ -110,31 +127,16 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	public boolean isHeaderAllowed() {
 		return isHeaderAllowed;
 	}
+	public boolean isXmlRequest() {
+		return isXmlRequest;
+	}
 	private boolean isVulnerability(String requestData) {
 		LOGGER.info("<<<<<<<<<<<Start isVulnerability On Headers>>>>>>>>>>>>>>>");
 		LOGGER.info("Header Request Data{}"+requestData);
 		boolean flag=true;
 		if(requestData!=null){
 			LOGGER.info("****Started Validate on Header Data*******");
-	    	StringBuilder sqlStatement=new StringBuilder();
-	    	sqlStatement.append("\\bselect\\b|\\binsert\\b|having\\s?[count]|drop|union[\\s]?\\b(select|delete|insert|delete)\\b|(\'|%27).(and|or|AND|OR).(\'|%27)|(\'|%27).%7C{0,2}|%7C{2}");
-			sqlStatement.append("|\\bmerge\\b|\\border by\\b|INSERT( +INTO){0,1}|EXEC(UTE){0,1}");
-			sqlStatement.append("|<script>(.*?)</script>|src[\r\n]*=[\r\n]*\\'(.*?)\\'");
-			sqlStatement.append("|</script>|<script(.*?)>|eval\\((.*?)\\)|expression\\((.*?)\\)|javascript:|alert\\((.*?)\\)");
-			sqlStatement.append("|<!--|\\b#include\\b|\\bfile\\b|\\b/etc/passwd\\b|-->|\\bjsessionid:\\b|\\bJSESSIONID:\\b|\\bvbscript:\\b|onload(.*?)=|/\\*([^*]|[\r\n]|(\\*+([^*/]|[\r\n])))*\\*+/");
-			sqlStatement.append("|/\\*(?:.|[\\n\\r])*?\\*/|--[^\r\n]*|((\\%3C)|<)((\\%69)|i|(\\%49))((\\%6D)|m|(\\%4D))((\\%67)|g|(\\%47))[^\n]+((\\%3E)|>)");
-			sqlStatement.append("|\\(function\\(\\)\\{.*\\}\\)\\(\\)|\\(function\\(\\)\\)\\(\\)");
-			sqlStatement.append("|[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']|(?i)<script.*?>.*?<script.*?>|(?i)<.*?javascript:.*?>.*?</.*?>|(?i)<.*?\\s+on.*?>.*?</.*?>");
-			sqlStatement.append("|;vol|&&ls *");
-			sqlStatement.append("|\\$query*");
-			sqlStatement.append("|sleep\\(.*\\)|sleep\\s?[0-9A-Za-z]|(<input(.*?)></input>|<input(.*)/>)");
-			sqlStatement.append("|%3C%00script.*|%3cscript.*");
-			sqlStatement.append("|ltrim");
-			Pattern p = Pattern.compile(sqlStatement.toString(),Pattern.CASE_INSENSITIVE);
-	        Matcher m = p.matcher(requestData);
-			if(m.find()){
-				flag=false;
-			}
+		    flag=SecurityContants.isVulnerabilityCheckPoint(requestData);
     	}else{
     		flag=true;
     	}
