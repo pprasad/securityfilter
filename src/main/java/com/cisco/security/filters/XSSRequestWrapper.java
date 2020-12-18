@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
@@ -75,6 +76,24 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	            public int read() throws IOException {
 	                return byteArrayInputStream.read();
 	            }
+
+				@Override
+				public boolean isFinished() {
+					// TODO Auto-generated method stub
+					return false;
+				}
+
+				@Override
+				public boolean isReady() {
+					// TODO Auto-generated method stub
+					return false;
+				}
+
+				@Override
+				public void setReadListener(ReadListener readListener) {
+					// TODO Auto-generated method stub
+					
+				}
 	        };
 	        return servletInputStream;
 	}

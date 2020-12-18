@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -29,7 +27,7 @@ import com.cisco.security.util.SecurityContants;
 public class SecurityFilter implements Filter {
 	
 	private final static Logger LOGGER=Logger.getLogger(SecurityFilter.class);
-
+	
 	private final String EMAN_URL="EMAN_URL";
 	
 	private final String SESSION_ID="JSESSIONID";
@@ -42,11 +40,7 @@ public class SecurityFilter implements Filter {
     
     private final String CISCO_DOMAIN="http://localhost";
 	
-	private final String WEBEX_DOMAIN="webex.com";
-	
 	private final String IS_SECURITY_RUN="IS_SECURITY_RUN";
-	
-	private final String IS_SECURITY_RUN_YES="Y";
 	
 	private final String IS_SECURITY_RUN_NO="N";
 	
@@ -202,9 +196,7 @@ public class SecurityFilter implements Filter {
 	private boolean isCrossSiteRequest(HttpServletRequest request) {
 		LOGGER.info("<<<<<<<<<<<Enter isCrossSiteRequest>>>>>>>>>>>>>>>");
 		boolean flag=false;
-		String envType=SecurityContants.getEnvType();
     	String referer=request.getHeader("Referer");
-    	String remoteHost=request.getRemoteHost();
     	String requestURL=request.getRequestURI();
     	String hostUrl=request.getRequestURL().toString();
     	LOGGER.info("Before Referer::{}"+referer+"--->Request URL::{}"+requestURL+"-->Host With Request URL::{}"+hostUrl);
