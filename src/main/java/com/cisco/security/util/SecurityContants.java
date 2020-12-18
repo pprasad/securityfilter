@@ -7,11 +7,12 @@ import javax.servlet.FilterConfig;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SecurityContants {
 	
-	private static final Logger LOGGER=Logger.getLogger(SecurityContants.class);
+	private static final Logger LOGGER=LoggerFactory.getLogger(SecurityContants.class);
 	
 	private static final String CISCO_LIFE="CISCO_LIFE";
 	    

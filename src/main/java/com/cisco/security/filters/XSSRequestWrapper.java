@@ -8,24 +8,20 @@ import java.io.InputStreamReader;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
-import org.apache.log4j.Logger;
-import org.json.JSONObject;
-import org.json.XML;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cisco.security.util.SecurityContants;
 
 
 public class XSSRequestWrapper extends HttpServletRequestWrapper {
 
-	private final static Logger LOGGER=Logger.getLogger(XSSRequestWrapper.class);
+	private final static Logger LOGGER=LoggerFactory.getLogger(XSSRequestWrapper.class);
 	
 	public static final String UTF8 = "UTF-8";
 	public final String body;
@@ -76,24 +72,6 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	            public int read() throws IOException {
 	                return byteArrayInputStream.read();
 	            }
-
-				@Override
-				public boolean isFinished() {
-					// TODO Auto-generated method stub
-					return false;
-				}
-
-				@Override
-				public boolean isReady() {
-					// TODO Auto-generated method stub
-					return false;
-				}
-
-				@Override
-				public void setReadListener(ReadListener readListener) {
-					// TODO Auto-generated method stub
-					
-				}
 	        };
 	        return servletInputStream;
 	}
@@ -151,7 +129,7 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	}
 	private boolean isVulnerability(String requestData) {
 		LOGGER.info("<<<<<<<<<<<Start isVulnerability On Headers>>>>>>>>>>>>>>>");
-		LOGGER.info("Header Request Data{}"+requestData);
+		LOGGER.info("Header Request Data:{}",requestData);
 		boolean flag=true;
 		if(requestData!=null){
 			LOGGER.info("****Started Validate on Header Data*******");
@@ -159,7 +137,7 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
     	}else{
     		flag=true;
     	}
-		LOGGER.info("Is Valid Header Data::{}"+flag);
+		LOGGER.info("Is Valid Header Data::{}",flag);
 		LOGGER.info("<<<<<<<<<<<End isVulnerability On Headers>>>>>>>>>>>>>>>");
 		return flag;
 	}

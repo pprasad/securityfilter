@@ -15,9 +15,10 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.json.XML;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.cisco.security.util.SecurityContants;
 /*
@@ -26,7 +27,7 @@ import com.cisco.security.util.SecurityContants;
  */
 public class SecurityFilter implements Filter {
 	
-	private final static Logger LOGGER=Logger.getLogger(SecurityFilter.class);
+	private final static Logger LOGGER=LoggerFactory.getLogger(SecurityFilter.class);
 	
 	private final String EMAN_URL="EMAN_URL";
 	
@@ -138,9 +139,9 @@ public class SecurityFilter implements Filter {
 	     boolean isValidRequestBody=isVulnerability(requestBody,url);
 	     boolean isValidQueryString=isVulnerability(queryString,url);
 	     if(isCrossSiteRequest(requestWrapper) && isMethodAllow){
-	    	 LOGGER.info("isHeaderAllow::{}"+isHeaderAllow);
-	 	     LOGGER.info("isValidRequestBody::{}"+isValidRequestBody);
-	 	     LOGGER.info("isValidQueryString::{}"+isValidQueryString);
+	    	 LOGGER.info("isHeaderAllow::{}",isHeaderAllow);
+	 	     LOGGER.info("isValidRequestBody::{}",isValidRequestBody);
+	 	     LOGGER.info("isValidQueryString::{}",isValidQueryString);
 	    	 if(isHeaderAllow && isValidQueryString && isValidRequestBody){
 	    		 filterChain.doFilter(requestWrapper,response);
 	    	 }else{
@@ -161,7 +162,7 @@ public class SecurityFilter implements Filter {
 	}
 	private boolean hasMethodAllowed(String method){
 		  LOGGER.info("****************Method Checking***********************");
-		  LOGGER.info("Method{}"+method);
+		  LOGGER.info("Method:{}",method);
 		  Boolean flag=Boolean.FALSE;  
 		  if(ALLOW_METHODS!=null && ALLOW_METHODS.contains(method.toUpperCase())){
 			  flag=Boolean.TRUE;
@@ -173,11 +174,11 @@ public class SecurityFilter implements Filter {
 	}
 	private void setSSLCookies(HttpServletRequest request,HttpServletResponse response){
 		LOGGER.info("<<<<<<<<<<<Enter into setSSLCookies>>>>>>>>>>>>>>>");
-		LOGGER.info("Application Related Cookies:{}"+appCookies.toArray());
+		LOGGER.info("Application Related Cookies:{}",(appCookies!=null && !appCookies.isEmpty()?appCookies.toArray():null));
 		Cookie []cookies=request.getCookies();
     	if(cookies!=null){
 			  for(Cookie cookie:cookies){ 
-				  LOGGER.info("cookie.getName:{}"+cookie.getName()+"-->comments:{}"+cookie.getComment()+"--->Secure:{}"+cookie.getSecure());
+				  LOGGER.info("cookie.getName:{}-->comments:{}--->Secure:{}",cookie.getName(),cookie.getComment(),cookie.getSecure());
 				  if(cookie.getName().equalsIgnoreCase(OBSSO_COOKIE)||cookie.getName().equalsIgnoreCase(SESSION_ID)){                    
 					  SecurityContants.setSecureCookie(response,cookie);
 				  }else if(cookie.getName().equalsIgnoreCase(GEAR_COOKIE)||cookie.getName().equalsIgnoreCase(SERVERID_COOKIE)){
@@ -199,8 +200,8 @@ public class SecurityFilter implements Filter {
     	String referer=request.getHeader("Referer");
     	String requestURL=request.getRequestURI();
     	String hostUrl=request.getRequestURL().toString();
-    	LOGGER.info("Before Referer::{}"+referer+"--->Request URL::{}"+requestURL+"-->Host With Request URL::{}"+hostUrl);
-    	LOGGER.info("Allowed ContextPath{}"+allowContextPath);
+    	LOGGER.info("Before Referer::{}--->Request URL::{}-->Host With Request URL::{}",referer,requestURL,hostUrl);
+    	LOGGER.info("Allowed ContextPath:{}",allowContextPath);
     	if(referer==null){
     	    referer=CISCO_DOMAIN;
     	}
@@ -219,25 +220,25 @@ public class SecurityFilter implements Filter {
 		boolean flag=true;
 		LOGGER.info("Request Data{}::"+requestData);
 		url=SecurityContants.getPath(url);
-		LOGGER.info("Execlude Paths:{}"+execludePaths.toString());
+		LOGGER.info("Execlude Paths:{}",execludePaths.toString());
 		if(requestData!=null && isSecurityFilter() && !execludePaths.contains(url)){
 			LOGGER.info("****Started Validate on Body (Or) Query Parameters*****");
 	    	flag=SecurityContants.isVulnerabilityCheckPoint(requestData);
     	}else{
     		flag=true;
     	}
-		LOGGER.info("Is Valid Request Data::{}"+flag);
+		LOGGER.info("Is Valid Request Data::{}",flag);
 		LOGGER.info("<<<<<<<<<<<End isVulnerability>>>>>>>>>>>>>>>");
 		return flag;
 	}
 	private boolean isSecurityFilter() {
 		LOGGER.info("<<<<<<<<<<<Start isSecurityFilter>>>>>>>>>>>>>>>");
 		String isRun=System.getProperty(IS_SECURITY_RUN);
-		LOGGER.info("Before IS_SECURITY_RUN::{}"+isRun);
+		LOGGER.info("Before IS_SECURITY_RUN::{}",isRun);
 		if(isRun==null) {
 			isRun=System.getenv(IS_SECURITY_RUN);
 		}
-		LOGGER.info("After IS_SECURITY_RUN::{}"+isRun);
+		LOGGER.info("After IS_SECURITY_RUN::{}",isRun);
 		LOGGER.info("<<<<<<<<<<<End isSecurityFilter>>>>>>>>>>>>>>>");
 		return (isRun!=null && IS_SECURITY_RUN_NO.equals(isRun))?false:true;
 	}

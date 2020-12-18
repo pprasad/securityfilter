@@ -6,14 +6,15 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.Test;
 
 import com.cisco.security.util.SecurityContants;
 
 public class SecurityTest {
 
-	private final Logger LOGGER=Logger.getLogger(SecurityTest.class);
+	private final Logger LOGGER=LoggerFactory.getLogger(SecurityTest.class);
 	
 	@Test
 	public void sqlInjectionTest() throws UnsupportedEncodingException {
@@ -23,7 +24,6 @@ public class SecurityTest {
 	   boolean flag=isVulnerability(queryString);
 	   
 	   LOGGER.info("Request validate{}"+flag);
-	   System.out.println("Request validate{}"+flag);
 	}
 	
 	@Test
@@ -43,7 +43,6 @@ public class SecurityTest {
 		boolean flag=isVulnerability(msg.trim());
 		   
 		   LOGGER.info("Request validate{}"+flag);
-		   System.out.println("Request validate{}"+flag);
 	}
 	
 	private boolean isVulnerability(String requestData) {
@@ -94,7 +93,7 @@ public class SecurityTest {
 		url=SecurityContants.getPath(url);
 		LOGGER.info("URL:{}"+url);
 		List<String> execludePaths=new ArrayList();
-		LOGGER.info(execludePaths.contains(url));
+		LOGGER.info("Context URL"+execludePaths.contains(url));
 	}
 	
 	@Test
@@ -126,5 +125,16 @@ public class SecurityTest {
 		String value="/*+-?ppp*/";
 		boolean flag=SecurityContants.isVulnerabilityCheckPoint(value);
 		LOGGER.info("After scan flag:{}"+flag);
+	}
+	
+	@Test
+	public void emailTest() {
+		String regex="^(.+)@(.+)$";
+		String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\."+
+				"[a-zA-Z0-9_+&*-]+)*@" +
+				"(?:[a-zA-Z0-9-]+\\.)+[a-z" +
+				"A-Z]{2,7}$";
+		Pattern p=Pattern.compile(emailRegex,Pattern.CASE_INSENSITIVE);
+		System.out.println("Email:{}"+p.matcher("umprasad@cisco.com").find());
 	}
 }
