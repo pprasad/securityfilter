@@ -24,11 +24,11 @@ public class SecurityContants {
     	boolean flag=true;
     	LOGGER.info("**********Started VulnerabilityCheckPoint********************");
     	StringBuilder sqlStatement=new StringBuilder();
-    	sqlStatement.append("';|;--|\\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE|UNION( +ALL){0,1}(SELECT)|HAVING\\s?(COUNT|GROUP BY)|ORDER BY)\\b");
+    	sqlStatement.append("';|;--|\\b(ALTER|CREATE\\s?(TABLE|VALUES)|DELETE\\s?(FROM|SELECT|WHERE)|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE\\s?(SET)|UNION( +ALL){0,1}(SELECT)|HAVING\\s?(COUNT|GROUP BY)|ORDER BY)\\b");
     	sqlStatement.append("|(\'|%27).(and|or|AND|OR).(\'|%27)|(\'|%27).%7C{0,2}|%7C{2}");
     	sqlStatement.append("|<script>(.*?)</script>|src[\r\n]*=[\r\n]*\\'(.*?)\\'");
 		sqlStatement.append("|</script>|<script(.*?)>|eval\\((.*?)\\)|expression\\((.*?)\\)|javascript:|alert\\((.*?)\\)");
-		sqlStatement.append("|\\b#include\\b|\\bfile\\b|\\b/etc/passwd\\b|\\bjsessionid:\\b|\\bJSESSIONID:\\b|\\bvbscript:\\b|onload(.*?)=");
+		sqlStatement.append("|\\b#include\\b|\\bfile(=|:)\\b|\\b/etc/passwd\\b|\\bjsessionid:\\b|\\bJSESSIONID:\\b|\\bvbscript:\\b|onload(.*?)=");
 		sqlStatement.append("|\\b--\\b|((\\%3C)|<)((\\%69)|i|(\\%49))((\\%6D)|m|(\\%4D))((\\%67)|g|(\\%47))[^\n]+((\\%3E)|>)");
 		sqlStatement.append("|\\(function\\(\\)\\{.*\\}\\)\\(\\)|\\(function\\(\\)\\)\\(\\)");
 		sqlStatement.append("|[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']|(?i)<script.*?>.*?<script.*?>|(?i)<.*?javascript:.*?>.*?</.*?>|(?i)<.*?\\s+on.*?>.*?</.*?>");

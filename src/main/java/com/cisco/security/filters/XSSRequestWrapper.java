@@ -23,6 +23,10 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 
 	private final static Logger LOGGER=LoggerFactory.getLogger(XSSRequestWrapper.class);
 	
+	private static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
+	
+	private static final String METHOD_POST = "POST";
+	
 	public static final String UTF8 = "UTF-8";
 	public final String body;
 	public final String queryString;
@@ -36,11 +40,13 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 		 BufferedReader reader=null;
 		 String readLine=null;
 		 try {
-			  InputStream inputStream=request.getInputStream();
-			  if(inputStream!=null) {
-				  reader=new BufferedReader(new InputStreamReader(inputStream));
-				  while((readLine=reader.readLine())!=null) {
-					   bodyData.append(readLine);
+			  if(!this.isFormPost()){
+				  InputStream inputStream=request.getInputStream();
+				  if(inputStream!=null) {
+					  reader=new BufferedReader(new InputStreamReader(inputStream));
+					  while((readLine=reader.readLine())!=null) {
+						   bodyData.append(readLine);
+					  }
 				  }
 			  }
 		 }catch(Exception ex) {
@@ -62,6 +68,7 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 		 }
 	     this.body=bodyData.length()==0?null:bodyData.toString();
 	     this.queryString=this.getQueryParameters();
+	     LOGGER.info("After Body Post Parameters:{}"+this.queryString);
 	     this.isHeaderAllowed=this.getHeaders();
 	}
 	@Override
@@ -140,5 +147,9 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 		LOGGER.info("Is Valid Header Data::{}",flag);
 		LOGGER.info("<<<<<<<<<<<End isVulnerability On Headers>>>>>>>>>>>>>>>");
 		return flag;
+	}
+	public boolean isFormPost() {
+		String contentType = getContentType();
+		return (contentType != null && contentType.contains(FORM_CONTENT_TYPE) && METHOD_POST.equalsIgnoreCase(getMethod()));
 	}
 }

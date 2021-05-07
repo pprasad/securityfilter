@@ -98,6 +98,8 @@ public class SecurityFilter implements Filter {
 				LOGGER.info("App Cookie{}"+s);
 			    appCookies.add(s);
 			}
+		}else{
+			appCookies=new ArrayList<String>();
 		}
 		/*Http Methods*/
 		if(methodAllows!=null){
@@ -155,6 +157,7 @@ public class SecurityFilter implements Filter {
 			response.setStatus(isMethodAllow?500:400);
 			response.sendError(isMethodAllow?HttpServletResponse.SC_BAD_REQUEST:HttpServletResponse.SC_METHOD_NOT_ALLOWED);
 			response.setContentType("text/html");
+			request.setAttribute("error_msg",errorMsg);
 			response.getOutputStream().write(errorMsg.getBytes());
 			response.getOutputStream().flush();
 			response.getOutputStream().close();
@@ -185,7 +188,7 @@ public class SecurityFilter implements Filter {
 					  SecurityContants.setSecureCookie(response,cookie);
 				  }else if(cookie.getName().equalsIgnoreCase(EDOS_LOGIN_COOKIE) || cookie.getName().equalsIgnoreCase(EDOS_AMCV_COOKIE)) {
 					  SecurityContants.setSecureCookie(response,cookie);
-				  }else if(appCookies!=null && appCookies.contains(cookie.getName()) && (!cookie.getSecure()||cookie.getComment()==null)){
+				  }else if(appCookies!=null && !appCookies.isEmpty() && appCookies.contains(cookie.getName()) && (!cookie.getSecure()||cookie.getComment()==null)){
 					  LOGGER.info("<<<<<Application related cookies>>>>>>");
 					  SecurityContants.setSecureCookie(response,cookie);
 				  }
