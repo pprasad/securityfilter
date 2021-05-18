@@ -65,6 +65,8 @@ public class SecurityFilter implements Filter {
     
     private static final String ALLOWED_REFERER="ALLOW_REFERER_HEADERS";
     
+    private static final String ALLOWED_HEADERS="ALLOW_HEADERS";
+    
     private String allowedReferers=null;
     
 	private String emanURL=null;
@@ -79,7 +81,8 @@ public class SecurityFilter implements Filter {
 	
 	private List<String> execludePaths;
 	
-
+	private String allowedHeadersRegex=null;
+	
 	public void init(FilterConfig config) throws ServletException {
 		emanURL=SecurityContants.getSystemValues(config,EMAN_URL);
 		String allowHost=SecurityContants.getSystemValues(config,ALLOW_HOSTS);
@@ -115,8 +118,19 @@ public class SecurityFilter implements Filter {
 			}
 		}
 		allowContextPath=SecurityContants.getSystemValues(config,ALLOW_CONTEXT_PATH);
+		
 		//Allowed Refereres
 		allowedReferers=SecurityContants.getSystemValues(config,ALLOWED_REFERER);
+		
+		//Allowed White List Headers
+		String allowedHeaders=SecurityContants.getSystemValues(config,ALLOWED_HEADERS);
+		LOGGER.info("AllowedHeaders:{}",allowedHeaders);
+		if(allowedHeaders!=null){
+			allowedHeaders=allowedHeaders.replaceAll(",","|");
+			StringBuilder headersRegex=new StringBuilder();
+			headersRegex.append("\\b").append("(").append(allowedHeaders).append(")\\b");
+			allowedHeadersRegex=headersRegex.toString();
+	    }
 	}
 	
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,FilterChain filterChain)
@@ -125,7 +139,7 @@ public class SecurityFilter implements Filter {
 		 HttpServletRequest request=(HttpServletRequest)servletRequest;
 		 HttpServletResponse response=(HttpServletResponse)servletResponse;
 		 addCustomerHeaders(response);
-	     XSSRequestWrapper requestWrapper=new XSSRequestWrapper(request);
+	     XSSRequestWrapper requestWrapper=new XSSRequestWrapper(request,allowedHeadersRegex);
 	     String requestBody=requestWrapper.getBody();
 	     if(requestBody!=null && requestWrapper.isXmlRequest()) {
 	    	 JSONObject xmlToJson=XML.toJSONObject(requestBody);

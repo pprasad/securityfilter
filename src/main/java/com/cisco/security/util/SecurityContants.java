@@ -123,4 +123,19 @@ public class SecurityContants {
 			  response.addCookie(cookie);
 		   }
     }
+    public static boolean isValidHeader(String allowedHeaders,String value) {
+    	boolean flag=false;
+    	LOGGER.info("**************isValidHeader**************");
+    	LOGGER.info("Header Name:{}",value);
+    	if(allowedHeaders!=null && (value!=null && value.toLowerCase().startsWith("x-"))){
+    		Pattern pattern=Pattern.compile(allowedHeaders,Pattern.CASE_INSENSITIVE);
+	    	Matcher match=pattern.matcher(value);
+	    	if(match.find()) {
+	    		flag=true;
+	    	}
+    	}else if(value!=null && !value.toLowerCase().startsWith("x-")){
+    		flag=true;
+    	}
+    	return flag;
+    }
 }

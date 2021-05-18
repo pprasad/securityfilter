@@ -33,9 +33,12 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	public final boolean isHeaderAllowed;
 	public final boolean isXmlRequest;
 	private final String IS_SQL_QUERY="isSqlQuery";
+	private final String allowedHeaders;
 	
-	public XSSRequestWrapper(HttpServletRequest request){
+	public XSSRequestWrapper(HttpServletRequest request,String allowedHeaders){
 		 super(request);
+		 LOGGER.info("Received White list Headers:{}",allowedHeaders);
+		 this.allowedHeaders=allowedHeaders;
 		 StringBuilder bodyData=new StringBuilder();
 		 BufferedReader reader=null;
 		 String readLine=null;
@@ -114,7 +117,7 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 			String key=headers.nextElement();
 			if(!"cookie".equalsIgnoreCase(key) && !"accept".equalsIgnoreCase(key)){
 				String header=key+"="+this.getHeader(key);
-				flag=isVulnerability(header);
+				flag=SecurityContants.isValidHeader(this.allowedHeaders,key)?isVulnerability(header):false;
 				if(!flag){
 					break;
 				}

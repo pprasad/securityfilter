@@ -1308,4 +1308,12 @@ public class SecurityTest {
 		boolean flag=SecurityContants.isVulnerabilityCheckPoint(payload);
 		System.out.println("Valid Payload:{}"+flag);
 	}
+	
+	@Test
+	public void testAllowedHeaders() {
+		String allowedHeaders="X-RTC-AUTH,X-RTC-SCANID,X-RTC-REQUESTID";
+		String value="X-RTC-REQUESTID";
+		boolean flag=SecurityContants.isValidHeader(allowedHeaders,value);
+		System.out.println("Allowed Header Flag:{}"+flag);
+	}
 }
