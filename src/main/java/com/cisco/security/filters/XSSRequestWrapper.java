@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Set;
@@ -112,6 +113,7 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	}
 	private boolean getHeaders(){
 		boolean flag=true;
+		LOGGER.info("List Of Headers:{}",Collections.list(this.getHeaderNames()).toString());
 		Enumeration<String> headers=this.getHeaderNames();
 		while(headers.hasMoreElements()){
 			String key=headers.nextElement();

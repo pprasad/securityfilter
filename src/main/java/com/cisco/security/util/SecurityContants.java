@@ -32,7 +32,7 @@ public class SecurityContants {
 		sqlStatement.append("|\\b--\\b|((\\%3C)|<)((\\%69)|i|(\\%49))((\\%6D)|m|(\\%4D))((\\%67)|g|(\\%47))[^\n]+((\\%3E)|>)");
 		sqlStatement.append("|\\(function\\(\\)\\{.*\\}\\)\\(\\)|\\(function\\(\\)\\)\\(\\)");
 		sqlStatement.append("|[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']|(?i)<script.*?>.*?<script.*?>|(?i)<.*?javascript:.*?>.*?</.*?>|(?i)<.*?\\s+on.*?>.*?</.*?>");
-		sqlStatement.append("|;vol|&&ls *");
+		sqlStatement.append("|;vol|&&ls *|--[^\r\n]*|'[^0-9a-zA-B]+");
 		sqlStatement.append("|\\$query*");
 		sqlStatement.append("|sleep\\(.*\\)|sleep\\s?[0-9A-Za-z]|(<input(.*?)></input>|<input(.*)/>)");
 		sqlStatement.append("|%3C%00script.*|%3cscript.*|< script>.*?</script >|%3C+.*|(%25|%25.*)|iframe|window.*(location|src)|<a herf=.*?>(.*?)</a>");
@@ -136,6 +136,27 @@ public class SecurityContants {
     	}else if(value!=null && !value.toLowerCase().startsWith("x-")){
     		flag=true;
     	}
+    	LOGGER.info("Allow status {} for Header {}",flag,value);
+    	return flag;
+    }
+    
+    public static boolean isValidCorsUrls(String allowedOriginHeaders,String value){
+    	LOGGER.info("**********Started isValidRefererHeader********************");
+    	LOGGER.info("Cross Origin Headers{}"+allowedOriginHeaders);
+    	LOGGER.info("Cross Origin Header{}"+value);
+    	boolean flag=false;
+    	if(allowedOriginHeaders!=null && value!=null) {
+    		StringBuilder headersRegex=new StringBuilder();
+			headersRegex.append("\\b").append("(").append(String.join("|",allowedOriginHeaders.split(","))).append(")\\b");
+			Pattern pattern=Pattern.compile(headersRegex.toString(),Pattern.DOTALL);
+	    	Matcher match=pattern.matcher(value);
+	    	if(match.find()) {
+	    		flag=true;
+	    	}
+    	}else if(value==null) {
+    		flag=true;
+    	}
+    	LOGGER.info("**********End isValidRefererHeader********************");
     	return flag;
     }
 }

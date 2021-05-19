@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.cisco.security.util.SecurityContants;
@@ -16,13 +17,15 @@ public class SecurityTest {
 
 	private final Logger LOGGER=LoggerFactory.getLogger(SecurityTest.class);
 	
+	
 	@Test
 	public void sqlInjectionTest() throws UnsupportedEncodingException {
 	   String queryString="selSubgroup=800FIXEDFEAT&selectedSubgroup=800FIXEDFEAT&ARCBANSAL=AIR-CT5508-100-K9&userId=&keyType=CREATEPAK&actionValue=&buttonPressed=Issue+PAK&featureOption=%5B%5D&featureQty=%5B%5D&locale=en_US&dispLicDatesFlag=false&dispProdQTYFlag=true&subGrpQTY=N&selectedSourceCAId=-1%3C%00script%09%3E217%2B%7BvalueOf%3Aalert%7D%3C%2Fscript%09%3E&selectedSourceCAName=&selectedSourceVAId=-1&selectedSourceVAName=&product_type=safenet&addressFlag=&cprWebData=&PRODUCTDESC=800-NR-TEST&features=C1-SL-1100-4P-APP&__multiselect_features=&noOfPaks=&hidden_pak_pref_val=MULTIPLE%3AN&Option0=C1-SL-1100-4P-APP+%3A+AppX+Foundation+License+for+Cisco+ISR+1100+4P+Series&qty0=1&Option1=&qty1=&Option2=&qty2=&Option3=&qty3=&Option4=&qty4=&ccoId=saiupadh&EMAIL=saiupadh%40cisco.com&SALESORDNO=SalesOrder&SUBSCRIPTIONID=&TACCASE=NA&NOTES=";
 	   queryString=URLDecoder.decode(queryString,"UTF-8");
-	   System.out.println(queryString);
-	   boolean flag=isVulnerability(queryString);
-	   
+	   //System.out.println(queryString);
+	   String payload="{    \"flag\": \"N\",    \"userID\": \"ahumne\",     \"paginationALreadySet\": true,    \"srcCaId\": 0,    \"contextSA\":    {        \"companyAccId\": \"0\",        \"sourceCaId\": \"0\",        \"sourceCaName\": \"\",        \"virtualAccountList\":        [            {                \"virtualAccountId\": \"0\",                \"virtualAccountName\": null,                \"defaultFlag\": false,                \"displayFlag\": false,                \"selectedFlag\": \"Y\"            }        ],        \"displayCaName\": null,        \"displayCaMsg\": null,        \"isSmartAdmin\": false,        \"domainIdentifier\": null,        \"accountType\": null,        \"smartAdmin\": false    },    \"paginationForm\":    {        \"noOfPages\": 0,        \"pageNo\": 1,        \"pageNoEndIndex\": 0,        \"pageNoStartIndex\": 0,        \"perPage\": 10,        \"recordEndIndex\": 0,        \"recordStartIndex\": 0,        \"totalListSize\": 0    },    \"pakTabFilter\":    {        \"ciscoSO\": \"\",        \"companyAccount\": \"\",        \"lineID\": \"\",        \"orderLineId\": \"\",        \"orderNumber\": \"\",        \"pakId\": \"\",        \"productFamily\": \"\",        \"qty\": \"\",        \"sku\": \"\",        \"skuDesc\": \"\",        \"sortColumn\": \"\",        \"sortOrder\": \"\",        \"status\": \"\",        \"subGroup\": \"\",        \"subscriptionId\": \"\",        \"usedQTY\": \"\"    }}";
+	   boolean flag=isVulnerability(payload);
+	   System.out.println("Status:{}"+flag);
 	   LOGGER.info("Request validate{}"+flag);
 	}
 	
@@ -1314,6 +1317,14 @@ public class SecurityTest {
 		String allowedHeaders="X-RTC-AUTH,X-RTC-SCANID,X-RTC-REQUESTID";
 		String value="X-RTC-REQUESTID";
 		boolean flag=SecurityContants.isValidHeader(allowedHeaders,value);
+		System.out.println("Allowed Header Flag:{}"+flag);
+	}
+	
+	@Test
+	public void testCrosHeaders() {
+		String allowedHeaders="https://software-dev.cisco.com,https://swapi-dev.cisco.com,http://localhost,http://localhost:8080,http://cda-ui,https://cloudsso-test.cisco.com,https://activate-dev-rtp.cisco.com,https://api-345c0691.duosecurity.com";
+		String value="http://localhost";
+		boolean flag=SecurityContants.isValidCorsUrls(allowedHeaders,value);
 		System.out.println("Allowed Header Flag:{}"+flag);
 	}
 }

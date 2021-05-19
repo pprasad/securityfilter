@@ -65,6 +65,8 @@ public class SecurityFilter implements Filter {
     
     private static final String ALLOWED_REFERER="ALLOW_REFERER_HEADERS";
     
+    private static final String ALLOWED_ORIGIN_HEADERS="ALLOW_ORIGIN_HEADERS";
+    
     private static final String ALLOWED_HEADERS="ALLOW_HEADERS";
     
     private String allowedReferers=null;
@@ -82,6 +84,8 @@ public class SecurityFilter implements Filter {
 	private List<String> execludePaths;
 	
 	private String allowedHeadersRegex=null;
+	
+	private String allowedCorsHeaders=null;
 	
 	public void init(FilterConfig config) throws ServletException {
 		emanURL=SecurityContants.getSystemValues(config,EMAN_URL);
@@ -131,6 +135,8 @@ public class SecurityFilter implements Filter {
 			headersRegex.append("\\b").append("(").append(allowedHeaders).append(")\\b");
 			allowedHeadersRegex=headersRegex.toString();
 	    }
+		//Allow Cross origin Url's
+		this.allowedCorsHeaders=SecurityContants.getSystemValues(config,ALLOWED_ORIGIN_HEADERS);
 	}
 	
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,FilterChain filterChain)
@@ -154,7 +160,9 @@ public class SecurityFilter implements Filter {
 	     LOGGER.info("isMethodAllow::{}"+isMethodAllow);
 	     boolean isValidRequestBody=isVulnerability(requestBody,url);
 	     boolean isValidQueryString=isVulnerability(queryString,url);
-	     if(isCrossSiteRequest(requestWrapper) && isMethodAllow){
+	     String originUrl=request.getHeader("Origin");
+	     LOGGER.info("Origin URL:{}",originUrl);
+	     if(isCrossSiteRequest(requestWrapper) && isMethodAllow && SecurityContants.isValidCorsUrls(this.allowedCorsHeaders,originUrl)){
 	    	 LOGGER.info("isHeaderAllow::{}",isHeaderAllow);
 	 	     LOGGER.info("isValidRequestBody::{}",isValidRequestBody);
 	 	     LOGGER.info("isValidQueryString::{}",isValidQueryString);
@@ -163,7 +171,7 @@ public class SecurityFilter implements Filter {
 	    	 }else{
 	    		 errorMsg=INVALID_REQUEST;
 	    	 }
-	     }else {
+	     }else{
 	    	 errorMsg=ACCESS_DENIDED;
 	     }
 		if(errorMsg!=null) {
