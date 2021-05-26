@@ -4,13 +4,25 @@
 	<groupId>com.cisco.security.filters</groupId>
 	<artifactId>security-filter</artifactId>
 	<packaging>jar</packaging>
-	<version>3.7.3</version>
+	<version>3.7.5</version>
 	<name>security-filter Maven Webapp</name>
 	<url>http://maven.apache.org</url>
 	<properties>
 		<junit.version>4.11</junit.version>
 		<servelt.version>2.5</servelt.version>
 	</properties>
+	<distributionManagement>
+		<repository>
+			<id>central</id>
+			<name>repo-art.cisco.com-releases</name>
+			<url>https://repo-art.cisco.com/artifactory/cisco-shared-libs-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>repo-art.cisco.com-snapshots</name>
+			<url>https://repo-art.cisco.com/artifactory/cisco-shared-libs-local</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>

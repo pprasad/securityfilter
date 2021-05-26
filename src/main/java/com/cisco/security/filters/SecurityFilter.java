@@ -69,6 +69,8 @@ public class SecurityFilter implements Filter {
     
     private static final String ALLOWED_HEADERS="ALLOW_HEADERS";
     
+    private static final String EXCLUDE_HEADER_VALUES="EXCLUDE_HEADER_VALUES";
+    
     private String allowedReferers=null;
     
 	private String emanURL=null;
@@ -87,7 +89,10 @@ public class SecurityFilter implements Filter {
 	
 	private String allowedCorsHeaders=null;
 	
+	private List<String> excludeHeaderValues=null;  
+	
 	public void init(FilterConfig config) throws ServletException {
+		excludeHeaderValues=new ArrayList<String>();
 		emanURL=SecurityContants.getSystemValues(config,EMAN_URL);
 		String allowHost=SecurityContants.getSystemValues(config,ALLOW_HOSTS);
 		String methodAllows=SecurityContants.getSystemValues(config,"METHOD_ALLOWED");
@@ -137,6 +142,13 @@ public class SecurityFilter implements Filter {
 	    }
 		//Allow Cross origin Url's
 		this.allowedCorsHeaders=SecurityContants.getSystemValues(config,ALLOWED_ORIGIN_HEADERS);
+		//ExcludeHeaders & validate after decoding
+		String excludeHeaders=SecurityContants.getSystemValues(config,EXCLUDE_HEADER_VALUES);
+		if(excludeHeaders!=null && !excludeHeaders.trim().isEmpty()){
+			for(String s:excludeHeaders.split(",")){
+	    		excludeHeaderValues.add(s);
+	    	}
+		}
 	}
 	
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,FilterChain filterChain)
@@ -145,7 +157,7 @@ public class SecurityFilter implements Filter {
 		 HttpServletRequest request=(HttpServletRequest)servletRequest;
 		 HttpServletResponse response=(HttpServletResponse)servletResponse;
 		 addCustomerHeaders(response);
-	     XSSRequestWrapper requestWrapper=new XSSRequestWrapper(request,allowedHeadersRegex);
+	     XSSRequestWrapper requestWrapper=new XSSRequestWrapper(request,allowedHeadersRegex,excludeHeaderValues);
 	     String requestBody=requestWrapper.getBody();
 	     if(requestBody!=null && requestWrapper.isXmlRequest()) {
 	    	 JSONObject xmlToJson=XML.toJSONObject(requestBody);

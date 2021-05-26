@@ -1,5 +1,6 @@
 package com.cisco.security.util;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,7 +33,7 @@ public class SecurityContants {
 		sqlStatement.append("|\\b--\\b|((\\%3C)|<)((\\%69)|i|(\\%49))((\\%6D)|m|(\\%4D))((\\%67)|g|(\\%47))[^\n]+((\\%3E)|>)");
 		sqlStatement.append("|\\(function\\(\\)\\{.*\\}\\)\\(\\)|\\(function\\(\\)\\)\\(\\)");
 		sqlStatement.append("|[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']|(?i)<script.*?>.*?<script.*?>|(?i)<.*?javascript:.*?>.*?</.*?>|(?i)<.*?\\s+on.*?>.*?</.*?>");
-		sqlStatement.append("|;vol|&&ls *|--[^\r\n]*|'[^0-9a-zA-B]+");
+		sqlStatement.append("|;vol|&&ls *|--[^\r\n]*|'[^\\\\_0-9a-zA-B]+");
 		sqlStatement.append("|\\$query*");
 		sqlStatement.append("|sleep\\(.*\\)|sleep\\s?[0-9A-Za-z]|(<input(.*?)></input>|<input(.*)/>)");
 		sqlStatement.append("|%3C%00script.*|%3cscript.*|< script>.*?</script >|%3C+.*|(%25|%25.*)|iframe|window.*(location|src)|<a herf=.*?>(.*?)</a>");
@@ -158,5 +159,40 @@ public class SecurityContants {
     	}
     	LOGGER.info("**********End isValidRefererHeader********************");
     	return flag;
+    }
+
+    public static String percentDecode(String value) {
+    	 if(value==null) {
+    		 return value;
+    	 }else{
+    		 String decoded =value.replace("%21","!");
+    		 decoded = decoded.replace("%20"," ");
+    		 decoded = decoded.replace("%23","#");
+    		 decoded = decoded.replace("%24","$");
+    		 decoded = decoded.replace("%26","&");
+    		 decoded = decoded.replace("%27","'");
+    		 decoded = decoded.replace("%28","(");
+    		 decoded = decoded.replace("%29",")");
+    		 decoded = decoded.replace("%2A","*");
+    		 decoded = decoded.replace("%2B","+");
+    		 decoded = decoded.replace("%2C",",");
+    		 decoded = decoded.replace("%2F","/");
+    		 decoded = decoded.replace("%3A",":");
+    		 decoded = decoded.replace("%3B",";");
+    		 decoded = decoded.replace("%3D","=");
+    		 decoded = decoded.replace("%3F","?");
+    		 decoded = decoded.replace("%40","@");
+    		 decoded = decoded.replace("%5B","[");
+    		 decoded = decoded.replace("%5D","]");
+    		 decoded = decoded.replace("%25","%");
+    		 return decoded; 
+    	 }
+    }
+    public static String decodeHeaderValue(List<String> excludeHeaders,String key,String value){
+    	if(excludeHeaders!=null && !excludeHeaders.isEmpty() && excludeHeaders.contains(key)) {
+    	    return percentDecode(value);
+    	 }else{
+    		return value;
+    	 }
     }
 }
