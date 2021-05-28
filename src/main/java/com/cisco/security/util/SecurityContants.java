@@ -1,5 +1,6 @@
 package com.cisco.security.util;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -11,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SecurityContants {
+public final class SecurityContants {
 	
 	private static final Logger LOGGER=LoggerFactory.getLogger(SecurityContants.class);
 	
@@ -21,6 +22,14 @@ public class SecurityContants {
 	
 	private static final String HTTP_ONLY="; HttpOnly;";
 	
+	private static final List<String> excludeHeaderValues=new ArrayList<String>();
+	
+	private static final List<String> excludeQueryParams=new ArrayList<String>();
+	
+	private static String allowedHeadersRegex=null;
+	
+	private SecurityContants(){ }
+		
     public static boolean isVulnerabilityCheckPoint(String requestData) {
     	boolean flag=true;
     	LOGGER.info("**********Started VulnerabilityCheckPoint********************");
@@ -124,12 +133,12 @@ public class SecurityContants {
 			  response.addCookie(cookie);
 		   }
     }
-    public static boolean isValidHeader(String allowedHeaders,String value) {
+    public static boolean isValidHeader(String value) {
     	boolean flag=false;
     	LOGGER.info("**************isValidHeader**************");
     	LOGGER.info("Header Name:{}",value);
-    	if(allowedHeaders!=null && (value!=null && value.toLowerCase().startsWith("x-"))){
-    		Pattern pattern=Pattern.compile(allowedHeaders,Pattern.CASE_INSENSITIVE);
+    	if(allowedHeadersRegex!=null && (value!=null && value.toLowerCase().startsWith("x-"))){
+    		Pattern pattern=Pattern.compile(allowedHeadersRegex,Pattern.CASE_INSENSITIVE);
 	    	Matcher match=pattern.matcher(value);
 	    	if(match.find()) {
 	    		flag=true;
@@ -142,9 +151,9 @@ public class SecurityContants {
     }
     
     public static boolean isValidCorsUrls(String allowedOriginHeaders,String value){
-    	LOGGER.info("**********Started isValidRefererHeader********************");
-    	LOGGER.info("Cross Origin Headers{}"+allowedOriginHeaders);
-    	LOGGER.info("Cross Origin Header{}"+value);
+    	LOGGER.info("**********Started isValidCorsUrls********************");
+    	LOGGER.info("Application Allowed Cross Origin URLS{}",allowedOriginHeaders);
+    	LOGGER.info("Cors Origin URL{}",value);
     	boolean flag=false;
     	if(allowedOriginHeaders!=null && value!=null) {
     		StringBuilder headersRegex=new StringBuilder();
@@ -157,7 +166,8 @@ public class SecurityContants {
     	}else if(value==null) {
     		flag=true;
     	}
-    	LOGGER.info("**********End isValidRefererHeader********************");
+    	LOGGER.info(" Valid CorsUrl Status:{} & URL:{}",flag,value);
+    	LOGGER.info("**********End isValidCorsUrls********************");
     	return flag;
     }
 
@@ -188,11 +198,62 @@ public class SecurityContants {
     		 return decoded; 
     	 }
     }
-    public static String decodeHeaderValue(List<String> excludeHeaders,String key,String value){
-    	if(excludeHeaders!=null && !excludeHeaders.isEmpty() && excludeHeaders.contains(key)) {
+    public static String decodeHeaderValue(String key,String value){
+    	if(excludeHeaderValues!=null && !excludeHeaderValues.isEmpty() && excludeHeaderValues.contains(key)) {
     	    return percentDecode(value);
     	 }else{
     		return value;
     	 }
     }
+    public static boolean isEmpty(String value) {
+    	return (value!=null && !value.trim().isEmpty())?false:true;
+    }
+    
+    public static boolean isExcludeQueryParams(String key){
+    	return !excludeQueryParams.isEmpty() && excludeQueryParams.contains(key);
+    }
+    
+    public static void addExcludeHeaderValues(FilterConfig config,String key) {
+    	String values=getSystemValues(config,key);
+		if(!isEmpty(values)){
+			for(String s:values.split(",")){
+				SecurityContants.excludeHeaderValues.add(s);
+	    	}
+		}
+    }
+    
+    public static void addExcludeQueryParams(FilterConfig config,String key){
+    	String values=getSystemValues(config,key);
+		if(!isEmpty(values)){
+			for(String s:values.split(",")){
+		    	SecurityContants.excludeQueryParams.add(s);
+	    	}
+		}
+    }
+
+    public static void setAllowedHeadersRegex(String allowedHeadersRegex) {
+		SecurityContants.allowedHeadersRegex = allowedHeadersRegex;
+	}
+
+	public static List<String> getExcludeheadervalues() {
+		return excludeHeaderValues;
+	}
+
+	public static List<String> getExcludequeryparams() {
+		return excludeQueryParams;
+	}
+	
+	public static String prepareErrorMessage(boolean isValidHeader,boolean isValidMethod,boolean isValidBody,boolean isValidQueryParams){
+		String errorMsg=null;
+		if(!isValidHeader) {
+			errorMsg="Invalid Header Values";
+		}else if(!isValidMethod) {
+			errorMsg="Invalid Method";
+		}else if(!isValidBody) {
+			errorMsg="Invalid Body Request";
+		}else if(!isValidQueryParams) {
+			errorMsg="Invalid Query Parameters";
+		}
+		return errorMsg;
+	}
 }

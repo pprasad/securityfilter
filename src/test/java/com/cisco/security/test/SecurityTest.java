@@ -1,4 +1,6 @@
 package com.cisco.security.test;
+import static com.cisco.security.util.SecurityContants.setAllowedHeadersRegex;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -1315,9 +1317,12 @@ public class SecurityTest {
 	
 	@Test
 	public void testAllowedHeaders() {
-		String allowedHeaders="X-RTC-AUTH,X-RTC-SCANID,X-RTC-REQUESTID";
+		String allowedHeaders="X-RTC-AUTH|X-RTC-SCANID|X-RTC-REQUESTID";
 		String value="X-RTC-REQUESTID";
-		boolean flag=SecurityContants.isValidHeader(allowedHeaders,value);
+		StringBuilder headersRegex=new StringBuilder();
+		headersRegex.append("\\b").append("(").append(allowedHeaders).append(")\\b");
+		setAllowedHeadersRegex(headersRegex.toString());
+		boolean flag=SecurityContants.isValidHeader(value);
 		System.out.println("Allowed Header Flag:{}"+flag);
 	}
 	

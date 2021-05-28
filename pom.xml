@@ -4,7 +4,7 @@
 	<groupId>com.cisco.security.filters</groupId>
 	<artifactId>security-filter</artifactId>
 	<packaging>jar</packaging>
-	<version>3.7.5</version>
+	<version>3.7.6</version>
 	<name>security-filter Maven Webapp</name>
 	<url>http://maven.apache.org</url>
 	<properties>

@@ -1,10 +1,16 @@
 package com.cisco.security.filters;
 
+import static com.cisco.security.util.SecurityContants.decodeHeaderValue;
+import static com.cisco.security.util.SecurityContants.isValidHeader;
+import static com.cisco.security.util.SecurityContants.isVulnerabilityCheckPoint;
+import static com.cisco.security.util.SecurityContants.isExcludeQueryParams;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -17,9 +23,6 @@ import javax.servlet.http.HttpServletRequestWrapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.cisco.security.util.SecurityContants;
-
 
 public class XSSRequestWrapper extends HttpServletRequestWrapper {
 
@@ -34,15 +37,9 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	public final String queryString;
 	public final boolean isHeaderAllowed;
 	public final boolean isXmlRequest;
-	private final String IS_SQL_QUERY="isSqlQuery";
-	private final String allowedHeaders;
-	private final List<String> excludeHeaderValues;
 	
-	public XSSRequestWrapper(HttpServletRequest request,String allowedHeaders,List<String> excludeHeaderValues){
+	public XSSRequestWrapper(HttpServletRequest request){
 		 super(request);
-		 LOGGER.info("Received White list Headers:{}",allowedHeaders);
-		 this.allowedHeaders=allowedHeaders;
-		 this.excludeHeaderValues=excludeHeaderValues;
 		 StringBuilder bodyData=new StringBuilder();
 		 BufferedReader reader=null;
 		 String readLine=null;
@@ -95,24 +92,15 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 	}
 	private String getQueryParameters() {
 		LOGGER.info("****************Start getQueryParameters****************");
-		String query=null;
+		List<String> query=new ArrayList<String>();
 		Set<Map.Entry<String,Object>> entrySet=this.getParameterMap().entrySet();
-		int i=0;
 		for(Map.Entry<String,Object> param:entrySet) {
-			if(query==null) {query="";}
-			if(!param.getKey().equals(IS_SQL_QUERY)){
-				query+=param.getKey()+"="+this.getParameter(param.getKey());
-				i+=1;
-				if(i<entrySet.size()) {
-					query+="&";
-				}
-			}else{
-				query=null;
-				break;
-			}
+			if(!isExcludeQueryParams(param.getKey())){
+				query.add(param.getKey()+"="+this.getParameter(param.getKey()));
+			 }
 		}
 		LOGGER.info("****************END getQueryParameters****************");
-		return query;
+		return query.isEmpty()?null:String.join("&",query);
 	}
 	private boolean getHeaders(){
 		boolean flag=true;
@@ -121,8 +109,8 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 		while(headers.hasMoreElements()){
 			String key=headers.nextElement();
 			if(!"cookie".equalsIgnoreCase(key) && !"accept".equalsIgnoreCase(key)){
-				String header=key+"="+SecurityContants.decodeHeaderValue(this.excludeHeaderValues,key,this.getHeader(key));
-				flag=SecurityContants.isValidHeader(this.allowedHeaders,key)?isVulnerability(header):false;
+				String header=key+"="+decodeHeaderValue(key,this.getHeader(key));
+				flag=isValidHeader(key)?isVulnerability(header):false;
 				if(!flag){
 					break;
 				}
@@ -148,7 +136,7 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 		boolean flag=true;
 		if(requestData!=null){
 			LOGGER.info("****Started Validate on Header Data*******");
-		    flag=SecurityContants.isVulnerabilityCheckPoint(requestData);
+		    flag=isVulnerabilityCheckPoint(requestData);
     	}else{
     		flag=true;
     	}

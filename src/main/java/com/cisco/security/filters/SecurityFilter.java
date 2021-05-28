@@ -1,8 +1,19 @@
 package com.cisco.security.filters;
 
+import static com.cisco.security.util.SecurityContants.addExcludeHeaderValues;
+import static com.cisco.security.util.SecurityContants.addExcludeQueryParams;
+import static com.cisco.security.util.SecurityContants.getPath;
+import static com.cisco.security.util.SecurityContants.getSystemValues;
+import static com.cisco.security.util.SecurityContants.isValidCorsUrls;
+import static com.cisco.security.util.SecurityContants.isValidRefererHeader;
+import static com.cisco.security.util.SecurityContants.isValidURL;
+import static com.cisco.security.util.SecurityContants.isVulnerabilityCheckPoint;
+import static com.cisco.security.util.SecurityContants.setAllowedHeadersRegex;
+import static com.cisco.security.util.SecurityContants.setSecureCookie;
+import static com.cisco.security.util.SecurityContants.prepareErrorMessage;
+
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.Filter;
@@ -19,8 +30,6 @@ import org.json.JSONObject;
 import org.json.XML;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.cisco.security.util.SecurityContants;
 /*
  * @Auth : umprasad
  * @Desc : Vulnerability filter it will does't allowed SQL,CSS & javascript injections
@@ -71,11 +80,11 @@ public class SecurityFilter implements Filter {
     
     private static final String EXCLUDE_HEADER_VALUES="EXCLUDE_HEADER_VALUES";
     
+    private static final String EXCLUDE_QUERY_PARAMS="EXCLUDE_QUERY_PARAMS";
+    
     private String allowedReferers=null;
     
 	private String emanURL=null;
-	
-	private List<String> allowHosts;
 	
 	private String allowContextPath=null;
 	
@@ -85,25 +94,15 @@ public class SecurityFilter implements Filter {
 	
 	private List<String> execludePaths;
 	
-	private String allowedHeadersRegex=null;
-	
 	private String allowedCorsHeaders=null;
 	
-	private List<String> excludeHeaderValues=null;  
-	
 	public void init(FilterConfig config) throws ServletException {
-		excludeHeaderValues=new ArrayList<String>();
-		emanURL=SecurityContants.getSystemValues(config,EMAN_URL);
-		String allowHost=SecurityContants.getSystemValues(config,ALLOW_HOSTS);
-		String methodAllows=SecurityContants.getSystemValues(config,"METHOD_ALLOWED");
+		emanURL=getSystemValues(config,EMAN_URL);
+		String methodAllows=getSystemValues(config,"METHOD_ALLOWED");
 		execludePaths=new ArrayList<String>();
-		if(methodAllows==null){methodAllows=SecurityContants.getSystemValues(config,METHOD_ALLOWED);}
-		/*Allowed HostURL*/
-		if(allowHost!=null) {
-			allowHosts=new ArrayList<String>();
-			allowHosts.addAll(Arrays.asList(allowHost.split(",")));
-		}
-		String appCookie=SecurityContants.getSystemValues(config,APP_COOKIES);
+		if(methodAllows==null){methodAllows=getSystemValues(config,METHOD_ALLOWED);}
+	
+		String appCookie=getSystemValues(config,APP_COOKIES);
 		if(appCookie!=null) {
 			appCookies=new ArrayList<String>();
 			for(String s:appCookie.split(",")){
@@ -120,35 +119,30 @@ public class SecurityFilter implements Filter {
 	    		ALLOW_METHODS.add(s);
 	    	}
 	    }
-		String execludePath=SecurityContants.getSystemValues(config,EXECULDE_PATHS);
+		String execludePath=getSystemValues(config,EXECULDE_PATHS);
 		if(execludePath!=null) {
 			for(String s:execludePath.split(",")) {
 				execludePaths.add(s);
 			}
 		}
-		allowContextPath=SecurityContants.getSystemValues(config,ALLOW_CONTEXT_PATH);
-		
+		allowContextPath=getSystemValues(config,ALLOW_CONTEXT_PATH);
 		//Allowed Refereres
-		allowedReferers=SecurityContants.getSystemValues(config,ALLOWED_REFERER);
-		
+		allowedReferers=getSystemValues(config,ALLOWED_REFERER);
 		//Allowed White List Headers
-		String allowedHeaders=SecurityContants.getSystemValues(config,ALLOWED_HEADERS);
+		String allowedHeaders=getSystemValues(config,ALLOWED_HEADERS);
 		LOGGER.info("AllowedHeaders:{}",allowedHeaders);
 		if(allowedHeaders!=null){
 			allowedHeaders=allowedHeaders.replaceAll(",","|");
 			StringBuilder headersRegex=new StringBuilder();
 			headersRegex.append("\\b").append("(").append(allowedHeaders).append(")\\b");
-			allowedHeadersRegex=headersRegex.toString();
+			setAllowedHeadersRegex(headersRegex.toString());
 	    }
 		//Allow Cross origin Url's
-		this.allowedCorsHeaders=SecurityContants.getSystemValues(config,ALLOWED_ORIGIN_HEADERS);
+		this.allowedCorsHeaders=getSystemValues(config,ALLOWED_ORIGIN_HEADERS);
 		//ExcludeHeaders & validate after decoding
-		String excludeHeaders=SecurityContants.getSystemValues(config,EXCLUDE_HEADER_VALUES);
-		if(excludeHeaders!=null && !excludeHeaders.trim().isEmpty()){
-			for(String s:excludeHeaders.split(",")){
-	    		excludeHeaderValues.add(s);
-	    	}
-		}
+		addExcludeHeaderValues(config,EXCLUDE_HEADER_VALUES);
+		//Exclude Query params from security check
+		addExcludeQueryParams(config,EXCLUDE_QUERY_PARAMS);
 	}
 	
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,FilterChain filterChain)
@@ -157,7 +151,7 @@ public class SecurityFilter implements Filter {
 		 HttpServletRequest request=(HttpServletRequest)servletRequest;
 		 HttpServletResponse response=(HttpServletResponse)servletResponse;
 		 addCustomerHeaders(response);
-	     XSSRequestWrapper requestWrapper=new XSSRequestWrapper(request,allowedHeadersRegex,excludeHeaderValues);
+	     XSSRequestWrapper requestWrapper=new XSSRequestWrapper(request);
 	     String requestBody=requestWrapper.getBody();
 	     if(requestBody!=null && requestWrapper.isXmlRequest()) {
 	    	 JSONObject xmlToJson=XML.toJSONObject(requestBody);
@@ -174,19 +168,18 @@ public class SecurityFilter implements Filter {
 	     boolean isValidQueryString=isVulnerability(queryString,url);
 	     String originUrl=request.getHeader("Origin");
 	     LOGGER.info("Origin URL:{}",originUrl);
-	     if(isCrossSiteRequest(requestWrapper) && isMethodAllow && SecurityContants.isValidCorsUrls(this.allowedCorsHeaders,originUrl)){
-	    	 LOGGER.info("isHeaderAllow::{}",isHeaderAllow);
-	 	     LOGGER.info("isValidRequestBody::{}",isValidRequestBody);
-	 	     LOGGER.info("isValidQueryString::{}",isValidQueryString);
+	     LOGGER.info("isHeaderAllow::{}",isHeaderAllow);
+ 	     LOGGER.info("isValidRequestBody::{}",isValidRequestBody);
+ 	     LOGGER.info("isValidQueryString::{}",isValidQueryString);
+ 	     errorMsg=prepareErrorMessage(isHeaderAllow,isMethodAllow,isValidRequestBody,isValidQueryString);
+	     if(isCrossSiteRequest(requestWrapper) && isMethodAllow && isValidCorsUrls(this.allowedCorsHeaders,originUrl)){
 	    	 if(isHeaderAllow && isValidQueryString && isValidRequestBody){
 	    		 filterChain.doFilter(requestWrapper,response);
-	    	 }else{
-	    		 errorMsg=INVALID_REQUEST;
 	    	 }
 	     }else{
 	    	 errorMsg=ACCESS_DENIDED;
 	     }
-		if(errorMsg!=null) {
+		 if(errorMsg!=null) {
 			LOGGER.info("isMethodAllow{}"+isMethodAllow);
 			response.setStatus(isMethodAllow?500:400);
 			response.sendError(isMethodAllow?HttpServletResponse.SC_BAD_REQUEST:HttpServletResponse.SC_METHOD_NOT_ALLOWED);
@@ -217,14 +210,14 @@ public class SecurityFilter implements Filter {
 			  for(Cookie cookie:cookies){ 
 				  LOGGER.info("cookie.getName:{}-->comments:{}--->Secure:{}",cookie.getName(),cookie.getComment(),cookie.getSecure());
 				  if(cookie.getName().equalsIgnoreCase(OBSSO_COOKIE)||cookie.getName().equalsIgnoreCase(SESSION_ID)){                    
-					  SecurityContants.setSecureCookie(response,cookie);
+					  setSecureCookie(response,cookie);
 				  }else if(cookie.getName().equalsIgnoreCase(GEAR_COOKIE)||cookie.getName().equalsIgnoreCase(SERVERID_COOKIE)){
-					  SecurityContants.setSecureCookie(response,cookie);
+					  setSecureCookie(response,cookie);
 				  }else if(cookie.getName().equalsIgnoreCase(EDOS_LOGIN_COOKIE) || cookie.getName().equalsIgnoreCase(EDOS_AMCV_COOKIE)) {
-					  SecurityContants.setSecureCookie(response,cookie);
+					  setSecureCookie(response,cookie);
 				  }else if(appCookies!=null && !appCookies.isEmpty() && appCookies.contains(cookie.getName()) && (!cookie.getSecure()||cookie.getComment()==null)){
 					  LOGGER.info("<<<<<Application related cookies>>>>>>");
-					  SecurityContants.setSecureCookie(response,cookie);
+					  setSecureCookie(response,cookie);
 				  }
 			  }
 		}
@@ -243,7 +236,7 @@ public class SecurityFilter implements Filter {
     	    referer=CISCO_DOMAIN;
     	}
     	LOGGER.info("After Referer::{}"+referer);
-    	if(SecurityContants.isValidRefererHeader(referer,allowedReferers) && (SecurityContants.isValidURL(hostUrl)||(allowContextPath!=null &&
+    	if(isValidRefererHeader(referer,allowedReferers) && (isValidURL(hostUrl)||(allowContextPath!=null &&
     			hostUrl.contains(allowContextPath)))) {
     		flag=true;
     	}else if(requestURL!=null && requestURL.equals(emanURL)){
@@ -256,11 +249,11 @@ public class SecurityFilter implements Filter {
 		LOGGER.info("<<<<<<<<<<<Start isVulnerability>>>>>>>>>>>>>>>");
 		boolean flag=true;
 		LOGGER.info("Request Data{}::"+requestData);
-		url=SecurityContants.getPath(url);
+		url=getPath(url);
 		LOGGER.info("Execlude Paths:{}",execludePaths.toString());
 		if(requestData!=null && isSecurityFilter() && !execludePaths.contains(url)){
 			LOGGER.info("****Started Validate on Body (Or) Query Parameters*****");
-	    	flag=SecurityContants.isVulnerabilityCheckPoint(requestData);
+	    	flag=isVulnerabilityCheckPoint(requestData);
     	}else{
     		flag=true;
     	}
