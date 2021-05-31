@@ -1341,4 +1341,12 @@ public class SecurityTest {
 		System.out.print("Path:{}"+path);
 		System.out.println("Path:{}"+SecurityContants.isVulnerabilityCheckPoint(path));
 	}
+	
+	@Test
+	public void testQueryparams() {
+		List<String> query=new ArrayList<String>();
+        query.add("demo=43434");
+        query.add("kk=43434");
+        System.out.println("Query:{}"+String.join("&",query));
+	}
 }

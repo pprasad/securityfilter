@@ -36,7 +36,7 @@ public final class SecurityContants {
     	boolean flag=true;
     	LOGGER.info("**********Started VulnerabilityCheckPoint********************");
     	StringBuilder sqlStatement=new StringBuilder();
-    	sqlStatement.append("';|;--|\\b(ALTER|CREATE\\s?(TABLE|VALUES)|DELETE\\s?(FROM|SELECT|WHERE)|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE\\s?(SET)|UNION( +ALL){0,1}(SELECT)|HAVING\\s?(COUNT|GROUP BY)|ORDER BY)\\b");
+    	sqlStatement.append("';|;--|\\b(ALTER|CREATE\\s?(TABLE|VALUES)|DELETE\\s?(FROM|SELECT|WHERE)|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT\\s?(FROM|WHERE|=|;DROP TABLE)|UPDATE\\s?(SET)|UNION( +ALL){0,1}(SELECT)|HAVING\\s?(COUNT|GROUP BY)|ORDER BY)\\b");
     	sqlStatement.append("|(\'|%27).(and|or|AND|OR).(\'|%27)|(\'|%27).%7C{0,2}|%7C{2}");
     	sqlStatement.append("|<script>(.*?)</script>|src[\r\n]*=[\r\n]*\\'(.*?)\\'");
 		sqlStatement.append("|</script>|<script(.*?)>|eval\\((.*?)\\)|expression\\((.*?)\\)|javascript:|alert\\((.*?)\\)");

@@ -84,7 +84,7 @@ public class SecurityFilter implements Filter {
     private static final String EXCLUDE_HEADERS="EXCLUDE_HEADERS";
     
     private static final String EXCLUDE_QUERY_PARAMS="EXCLUDE_QUERY_PARAMS";
-    
+ 
     private String allowedReferers=null;
     
 	private String emanURL=null;
@@ -179,7 +179,7 @@ public class SecurityFilter implements Filter {
  	     errorMsg=prepareErrorMessage(isHeaderAllow,isMethodAllow,isValidRequestBody,isValidQueryString);
 	     if(isCrossSiteRequest(requestWrapper) && isMethodAllow && isValidCorsUrls(this.allowedCorsHeaders,originUrl)){
 	    	 if(isHeaderAllow && isValidQueryString && isValidRequestBody){
-	    		 filterChain.doFilter(requestWrapper,response);
+	    		 filterChain.doFilter(servletRequest,servletResponse);
 	    	 }
 	     }else{
 	    	 errorMsg=ACCESS_DENIDED;
@@ -192,7 +192,6 @@ public class SecurityFilter implements Filter {
 			request.setAttribute("error_msg",errorMsg);
 			response.getOutputStream().write(errorMsg.getBytes());
 			response.getOutputStream().flush();
-			response.getOutputStream().close();
 		}
 	}
 	private boolean hasMethodAllowed(String method){
