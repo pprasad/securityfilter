@@ -11,6 +11,7 @@ import static com.cisco.security.util.SecurityContants.isVulnerabilityCheckPoint
 import static com.cisco.security.util.SecurityContants.setAllowedHeadersRegex;
 import static com.cisco.security.util.SecurityContants.setSecureCookie;
 import static com.cisco.security.util.SecurityContants.prepareErrorMessage;
+import static com.cisco.security.util.SecurityContants.addExcludeHeaders;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -80,6 +81,8 @@ public class SecurityFilter implements Filter {
     
     private static final String EXCLUDE_HEADER_VALUES="EXCLUDE_HEADER_VALUES";
     
+    private static final String EXCLUDE_HEADERS="EXCLUDE_HEADERS";
+    
     private static final String EXCLUDE_QUERY_PARAMS="EXCLUDE_QUERY_PARAMS";
     
     private String allowedReferers=null;
@@ -143,6 +146,8 @@ public class SecurityFilter implements Filter {
 		addExcludeHeaderValues(config,EXCLUDE_HEADER_VALUES);
 		//Exclude Query params from security check
 		addExcludeQueryParams(config,EXCLUDE_QUERY_PARAMS);
+		//Exclude Header Values
+		addExcludeHeaders(config,EXCLUDE_HEADERS);
 	}
 	
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,FilterChain filterChain)

@@ -26,6 +26,8 @@ public final class SecurityContants {
 	
 	private static final List<String> excludeQueryParams=new ArrayList<String>();
 	
+	private static final List<String> excludeHeaders=new ArrayList<String>();
+	
 	private static String allowedHeadersRegex=null;
 	
 	private SecurityContants(){ }
@@ -213,6 +215,10 @@ public final class SecurityContants {
     	return !excludeQueryParams.isEmpty() && excludeQueryParams.contains(key);
     }
     
+    public static boolean isExcludeHeader(String key) {
+    	return !excludeHeaders.isEmpty() && excludeHeaders.contains(key);
+    }
+    
     public static void addExcludeHeaderValues(FilterConfig config,String key) {
     	String values=getSystemValues(config,key);
 		if(!isEmpty(values)){
@@ -243,6 +249,18 @@ public final class SecurityContants {
 		return excludeQueryParams;
 	}
 	
+	public static void addExcludeHeaders(FilterConfig config,String key) {
+		String values=getSystemValues(config,key);
+		if(!isEmpty(values)){
+			for(String s:values.split(",")){
+		    	SecurityContants.excludeHeaders.add(s);
+	    	}
+		}
+	}
+	public static List<String> getExcludeheaders() {
+		return excludeHeaders;
+	}
+
 	public static String prepareErrorMessage(boolean isValidHeader,boolean isValidMethod,boolean isValidBody,boolean isValidQueryParams){
 		String errorMsg=null;
 		if(!isValidHeader) {

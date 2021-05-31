@@ -4,6 +4,7 @@ import static com.cisco.security.util.SecurityContants.decodeHeaderValue;
 import static com.cisco.security.util.SecurityContants.isValidHeader;
 import static com.cisco.security.util.SecurityContants.isVulnerabilityCheckPoint;
 import static com.cisco.security.util.SecurityContants.isExcludeQueryParams;
+import static com.cisco.security.util.SecurityContants.isExcludeHeader;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -108,7 +109,7 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
 		Enumeration<String> headers=this.getHeaderNames();
 		while(headers.hasMoreElements()){
 			String key=headers.nextElement();
-			if(!"cookie".equalsIgnoreCase(key) && !"accept".equalsIgnoreCase(key)){
+			if(!"cookie".equalsIgnoreCase(key) && !"accept".equalsIgnoreCase(key) && !isExcludeHeader(key)){
 				String header=key+"="+decodeHeaderValue(key,this.getHeader(key));
 				flag=isValidHeader(key)?isVulnerability(header):false;
 				if(!flag){
